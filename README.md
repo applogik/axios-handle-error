@@ -19,18 +19,25 @@ yarn add axios-handle-error
 ## Usage Example
 
 ```ts
-import handleAxiosErrorOrThrow from "axios-handle-error";
-axios.get('/your-api-call').then(response => response.data).catch(e => handleAxiosErrorOrThrow(e, {
-    404: () => {
-        throw new Error("Element could not be found.");
-    },
-    '*': () => {
-        throw new Error("Unknown error occured.");
-    },
-    'NO_RESPONSE': () => {
-        throw new Error("Server is not responding. Please try again.");
-    }
-}));
+import axios from "axios";
+import handleAxiosError from "axios-handle-error";
+
+axios
+  .get('/your-api-call')
+  .then((response) => response.data)
+  .catch((e) => {
+    throw handleAxiosError(e, {
+      404: () => {
+        return new Error('Element could not be found.');
+      },
+      '*': () => {
+        return new Error('Unknown error occured.');
+      },
+      NO_RESPONSE: () => {
+        return new Error('Server is not responding. Please try again.');
+      },
+    });
+  });
 ```
 
 ## Built With

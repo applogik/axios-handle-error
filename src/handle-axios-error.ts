@@ -2,12 +2,12 @@ import { AxiosError } from 'axios';
 
 type ResponseStatusType = number | 'NO_RESPONSE' | '*';
 
-export function handleAxiosErrorOrThrow(
+export function handleAxiosError(
   e: any,
   callbacks: {
-    [key in ResponseStatusType]?: (status: ResponseStatusType) => void;
+    [key in ResponseStatusType]?: (status: ResponseStatusType) => Error;
   },
-) {
+): Error {
   if (e.isAxiosError) {
     const catchAllHandler = callbacks['*'];
 
@@ -16,22 +16,22 @@ export function handleAxiosErrorOrThrow(
       const status = axiosError.response.status;
       const errorCallback = callbacks[status];
       if (errorCallback) {
-        errorCallback(status);
+        return errorCallback(status);
       } else if (catchAllHandler) {
-        catchAllHandler(status);
+        return catchAllHandler(status);
       } else {
-        throw e;
+        return e;
       }
     } else {
       if (callbacks.NO_RESPONSE) {
-        callbacks.NO_RESPONSE('NO_RESPONSE');
+        return callbacks.NO_RESPONSE('NO_RESPONSE');
       } else if (catchAllHandler) {
-        catchAllHandler('NO_RESPONSE');
+        return catchAllHandler('NO_RESPONSE');
       } else {
-        throw e;
+        return e;
       }
     }
   } else {
-    throw e;
+    return e;
   }
 }

@@ -1,4 +1,4 @@
-import handleAxiosErrorOrThrow from './index';
+import handleAxiosError from './index';
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -11,12 +11,12 @@ describe('non axios error', () => {
     const noResponseMockCallback = jest.fn();
     const catchAllMockCallback = jest.fn();
 
-    expect(() =>
-      handleAxiosErrorOrThrow(dummyError, {
-        '*': catchAllMockCallback,
-        NO_RESPONSE: noResponseMockCallback,
-      }),
-    ).toThrow(dummyError);
+    const result = handleAxiosError(dummyError, {
+      '*': catchAllMockCallback,
+      NO_RESPONSE: noResponseMockCallback,
+    });
+
+    expect(result).toBe(dummyError);
   });
 });
 
@@ -24,7 +24,7 @@ describe('axios error', () => {
   it('should throw original exception if no handler is added', () => {
     const dummyError = new Error('dummy error');
 
-    expect(() => handleAxiosErrorOrThrow(dummyError, {})).toThrow(dummyError);
+    expect(handleAxiosError(dummyError, {})).toBe(dummyError);
   });
 
   describe('no server response', () => {
@@ -36,7 +36,7 @@ describe('axios error', () => {
 
       const noResponseMockCallback = jest.fn();
 
-      handleAxiosErrorOrThrow(dummyError, {
+      handleAxiosError(dummyError, {
         NO_RESPONSE: noResponseMockCallback,
       });
 
@@ -50,15 +50,13 @@ describe('axios error', () => {
       };
 
       const catchAllMockCallback = jest.fn();
-      const noResponseMockCallback = jest.fn();
 
-      handleAxiosErrorOrThrow(dummyError, {
+      handleAxiosError(dummyError, {
         '*': catchAllMockCallback,
-        NO_RESPONSE: noResponseMockCallback,
       });
 
-      expect(noResponseMockCallback).toBeCalledWith('NO_RESPONSE');
-      expect(catchAllMockCallback).toBeCalledTimes(0);
+      expect(catchAllMockCallback).toBeCalledTimes(1);
+      expect(catchAllMockCallback).toBeCalledWith('NO_RESPONSE');
     });
 
     it('should throw original error', () => {
@@ -67,26 +65,29 @@ describe('axios error', () => {
         response: null,
       };
 
-      expect(() => handleAxiosErrorOrThrow(dummyError, {})).toThrow();
+      expect(handleAxiosError(dummyError, {})).toBe(dummyError);
     });
   });
 
   describe('server response has status', () => {
     it('should call specified handler for 404 request', () => {
-      const e404 = {
+      const axios404Error = {
         isAxiosError: true,
         response: {
           status: 404,
         },
       };
 
-      const e404MockCallback = jest.fn();
+      const mockReturn = new Error('own 404 error');
 
-      handleAxiosErrorOrThrow(e404, {
+      const e404MockCallback = jest.fn().mockReturnValue(mockReturn);
+
+      const result = handleAxiosError(axios404Error, {
         404: e404MockCallback,
       });
 
       expect(e404MockCallback).toBeCalledWith(404);
+      expect(result).toBe(mockReturn);
     });
 
     it('should call catchAll callback for 404 request if no other handler is given', () => {
@@ -97,13 +98,16 @@ describe('axios error', () => {
         },
       };
 
-      const catchAllMockCallback = jest.fn();
+      const mockReturn = new Error('I handled this');
 
-      handleAxiosErrorOrThrow(e404, {
+      const catchAllMockCallback = jest.fn().mockReturnValue(mockReturn);
+
+      const result = handleAxiosError(e404, {
         '*': catchAllMockCallback,
       });
 
       expect(catchAllMockCallback).toBeCalledWith(404);
+      expect(result).toBe(mockReturn);
     });
 
     it('should throw original error for 404 request if handler is given', () => {
@@ -114,11 +118,11 @@ describe('axios error', () => {
         },
       };
 
-      const e500MockCallback = jest.fn();
+      const e500MockCallback = jest.fn().mockReturnValue('extra 500 handling');
 
-      expect(() =>
-        handleAxiosErrorOrThrow(e404, { 500: e500MockCallback }),
-      ).toThrow();
+      const result = handleAxiosError(e404, { 500: () => e500MockCallback() });
+
+      expect(result).toBe(e404);
       expect(e500MockCallback).toBeCalledTimes(0);
     });
   });
