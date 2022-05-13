@@ -1,6 +1,6 @@
 {
   "name": "axios-handle-error",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Handles axios errors in a convenient way",
   "license": "MIT",
   "author": {
